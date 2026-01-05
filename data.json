@@ -1,0 +1,10 @@
+{
+  "sessions": [
+    {
+      "session_id": "S001",
+      "child_name": "Player 1",
+      "metrics": {},
+      "ai_result": {}
+    }
+  ]
+}
