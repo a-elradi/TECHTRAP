@@ -388,8 +388,8 @@ TECHTRAP/
 | Name | Role |
 |------|------|
 | Abdalla Elsiddig | Lead Developer, AI Integration, Computer Vision Pipeline |
-| *(Wala Saleh)* | UI/UX Design |
-| *(nathalie AHMED)* | Project Presenter & Team Representative |
+| Wala Saleh | UI/UX Design |
+| Nathalie AHMED| Project Presenter & Team Representative |
 
 ---
 
