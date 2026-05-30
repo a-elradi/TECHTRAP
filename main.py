@@ -1,24 +1,27 @@
+import sys
+import os
+
+# Add src/ to path so all subpackages are importable
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "src"))
+
 import threading
 import cv2
-import cvzone
-from cvzone.HandTrackingModule import HandDetector
 import tkinter as tk
 import json
 import time
-import os
-from game_metrics import GameMetrics
-from doctor_report import generate_doctor_pdf
+
+from cvzone.HandTrackingModule import HandDetector
+from utils.game_metrics import GameMetrics, plot_game_metrics
+from reports.doctor_report import generate_doctor_pdf
+from gui.gui import build_ui
+import games.directkeys1 as dk1
+import games.directkeys2 as dk2
+import games.directkeys3 as dk3
 
 
 game_running = False
 current_game_thread = None
 stop_requested = False
-
-from GUI import build_ui
-
-import directkeys1 as dk1
-import directkeys2 as dk2
-import directkeys3 as dk3
 
 
 # =========================
@@ -88,58 +91,52 @@ def game1():
 
         hands, img = detector.findHands(frame)
         if hands:
-         lm = hands[0]["lmList"]
-        x, y = lm[8][0], lm[8][1]  # طرف السبابة
-        metrics.log_position(x, y)
+            lm = hands[0]["lmList"]
+            x, y = lm[8][0], lm[8][1]
+            metrics.log_position(x, y)
 
         if hands and detector.fingersUp(hands[0]) == [0, 0, 0, 0, 0]:
-            metrics.log_reaction(0.4)  # قيمة أولية (بنعدلها بعد حسابها بالملي ثانية)
+            metrics.log_reaction(0.4)
             dk1.PressKey(enter_key)
             current_keys.add(enter_key)
-          
-
         else:
             for k in current_keys:
                 dk1.ReleaseKey(k)
             current_keys.clear()
 
         cv2.imshow("Game 1", img)
-        if cv2.waitKey(1) & 0xFF == ord('q'):
+        if cv2.waitKey(1) & 0xFF == ord("q"):
             break
 
     for k in current_keys:
         dk1.ReleaseKey(k)
+
     results = metrics.compute_features()
-    print("🧠 GAME METRICS:", results)
-    from mindspore_analysis import MindSporeAnalyzer
+    print("GAME METRICS:", results)
 
-    analyzer = MindSporeAnalyzer()
-    ai_result = analyzer.analyze(results)
+    from ai.mindspore_analysis import analyze_neuro_motor
+    ai_result = analyze_neuro_motor(results)
+    print("Neuro-Motor Score (AI):", ai_result)
 
-    print("🧠 Neuro-Motor Score (AI):",ai_result)
     child_info = {
-    "platform": "TECHTRAP",
-    "child_name": "Player 1",
-    "age": 7,
-    "game_name": "Game 1"
+        "platform": "TECHTRAP",
+        "child_name": "Player 1",
+        "age": 7,
+        "game_name": "Game 1",
+        "session_id": f"G1_{int(time.time())}"
     }
 
     report_path = generate_doctor_pdf(
-    child_info=child_info,
-    game_metrics=results,
-    neuro_score=neuro_score
-)
-
-    print("📄 Doctor Report Saved:", report_path)
-
+        child_info=child_info,
+        game_metrics=results,
+        ai_result=ai_result
+    )
+    print("Doctor Report Saved:", report_path)
 
     cap.release()
     cv2.destroyAllWindows()
 
     log_game("game1", time.time() - start_time)
-    from game_metrics import plot_game_metrics
-
-    results = metrics.compute_features()
     plot_game_metrics(results, child_name="Player 1")
 
     stop_requested = False
@@ -160,11 +157,7 @@ def start_game1():
 def game2_race():
     global game_running, stop_requested
 
-    import time
-    import cv2
-    from cvzone.HandTrackingModule import HandDetector
-
-    print("Game 2 Selected – Hand Gas / Brake")
+    print("Game 2 Selected - Hand Gas / Brake")
 
     metrics = GameMetrics()
     start_time = time.time()
@@ -172,9 +165,8 @@ def game2_race():
     cap = cv2.VideoCapture(0)
     detector = HandDetector(detectionCon=0.7, maxHands=1)
 
-    # ===== Key Mapping =====
-    GAS_KEY = dk2.right_pressed    # زر التسارع
-    BRAKE_KEY = dk2.left_pressed   # زر الفرامل
+    GAS_KEY = dk2.right_pressed
+    BRAKE_KEY = dk2.left_pressed
 
     gas_active = False
     reaction_start_time = time.time()
@@ -192,17 +184,14 @@ def game2_race():
         if hands:
             fingers = detector.fingersUp(hands[0])
 
-            # ✋ يد مفتوحة = Gas
             if fingers == [1, 1, 1, 1, 1]:
                 if not gas_active:
                     reaction_time = time.time() - reaction_start_time
                     metrics.log_reaction(round(reaction_time, 3))
                     gas_active = True
-
                 dk2.PressKey(GAS_KEY)
                 dk2.ReleaseKey(BRAKE_KEY)
 
-            # ✊ قبضة = Brake
             elif fingers == [0, 0, 0, 0, 0]:
                 dk2.ReleaseKey(GAS_KEY)
                 dk2.PressKey(BRAKE_KEY)
@@ -231,26 +220,23 @@ def game2_race():
             2
         )
 
-        cv2.imshow("TECHTRAP – Racing Game", img)
+        cv2.imshow("TECHTRAP - Racing Game", img)
 
-        if cv2.waitKey(1) & 0xFF == ord('q'):
+        if cv2.waitKey(1) & 0xFF == ord("q"):
             break
 
-    # ===== Cleanup =====
     dk2.ReleaseKey(GAS_KEY)
     dk2.ReleaseKey(BRAKE_KEY)
 
     cap.release()
     cv2.destroyAllWindows()
 
-    # ===== Metrics & AI =====
     results = metrics.compute_features()
     print("GAME METRICS:", results)
 
-    from mindspore_analysis import analyze_neuro_motor
+    from ai.mindspore_analysis import analyze_neuro_motor
     ai_result = analyze_neuro_motor(results)
 
-    # ===== Doctor Report =====
     child_info = {
         "platform": "TECHTRAP",
         "child_name": "Player 1",
@@ -263,10 +249,9 @@ def game2_race():
         game_metrics=results,
         ai_result=ai_result
     )
-
     print("Doctor Report Saved:", report_path)
 
-    log_game("Racing Game", time.time() - start_time)
+    log_game("game2", time.time() - start_time)
 
     stop_requested = False
     game_running = False
@@ -308,38 +293,39 @@ def game3():
             dk3.ReleaseKey(dk3.space_pressed)
 
         cv2.imshow("Game 3", img)
-        if cv2.waitKey(1) & 0xFF == ord('q'):
+        if cv2.waitKey(1) & 0xFF == ord("q"):
             break
 
     dk3.ReleaseKey(dk3.space_pressed)
-    results = metrics.compute_features()
-    print("🧠 GAME METRICS:", results)
-    from mindspore_analysis import analyze_neuro_motor
 
+    results = metrics.compute_features()
+    print("GAME METRICS:", results)
+
+    from ai.mindspore_analysis import analyze_neuro_motor
     ai_result = analyze_neuro_motor(results)
-    print("🧠 Neuro-Motor Score (AI):", ai_result)
+    print("Neuro-Motor Score (AI):", ai_result)
+
     child_info = {
-    "platform": "TECHTRAP",
-    "child_name": "Player 1",
-    "age": 7,
-    "game_name": "Game 1"
+        "platform": "TECHTRAP",
+        "child_name": "Player 1",
+        "age": 7,
+        "game_name": "Game 3",
+        "session_id": f"G3_{int(time.time())}"
     }
 
     report_path = generate_doctor_pdf(
-    child_info=child_info,
-    game_metrics=results,
-    neuro_score=neuro_score
-)
+        child_info=child_info,
+        game_metrics=results,
+        ai_result=ai_result
+    )
+    print("Doctor Report Saved:", report_path)
 
-    print("📄 Doctor Report Saved:", report_path)
     cap.release()
     cv2.destroyAllWindows()
 
     log_game("game3", time.time() - start_time)
-    from game_metrics import plot_game_metrics
-
-    results = metrics.compute_features()
     plot_game_metrics(results, child_name="Player 1")
+
     stop_requested = False
     game_running = False
 
@@ -361,7 +347,7 @@ def game4():
     print("Game 4 Selected")
 
     start_time = time.time()
-    
+
     cap = cv2.VideoCapture(0)
     detector = HandDetector(detectionCon=0.8, maxHands=2)
 
@@ -376,36 +362,37 @@ def game4():
         hands, img = detector.findHands(img)
         cv2.imshow("Pong", img)
 
-        if cv2.waitKey(1) & 0xFF == ord('q'):
+        if cv2.waitKey(1) & 0xFF == ord("q"):
             break
-    results = metrics.compute_features()
-    print("🧠 GAME METRICS:", results)
-    from mindspore_analysis import analyze_neuro_motor
 
+    results = metrics.compute_features()
+    print("GAME METRICS:", results)
+
+    from ai.mindspore_analysis import analyze_neuro_motor
     ai_result = analyze_neuro_motor(results)
-    print("🧠 Neuro-Motor Score (AI):", ai_result)
+    print("Neuro-Motor Score (AI):", ai_result)
+
     child_info = {
-    "platform": "TECHTRAP",
-    "child_name": "Player 1",
-    "age": 7,
-    "game_name": "Game 1"
+        "platform": "TECHTRAP",
+        "child_name": "Player 1",
+        "age": 7,
+        "game_name": "Game 4",
+        "session_id": f"G4_{int(time.time())}"
     }
 
     report_path = generate_doctor_pdf(
-    child_info=child_info,
-    game_metrics=results,
-    neuro_score=neuro_score
-)
+        child_info=child_info,
+        game_metrics=results,
+        ai_result=ai_result
+    )
+    print("Doctor Report Saved:", report_path)
 
-    print("📄 Doctor Report Saved:", report_path)
     cap.release()
     cv2.destroyAllWindows()
 
     log_game("game4", time.time() - start_time)
-    from game_metrics import plot_game_metrics
-
-    results = metrics.compute_features()
     plot_game_metrics(results, child_name="Player 1")
+
     stop_requested = False
     game_running = False
 
@@ -439,6 +426,5 @@ if __name__ == "__main__":
         on_game2=start_game2,
         on_game3=start_game3,
         on_game4=start_game4,
-    
     )
     root.mainloop()

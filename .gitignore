@@ -1,0 +1,53 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyd
+*.pyo
+*.so
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# IDE
+.idea/
+.vscode/
+*.suo
+*.user
+
+# Generated outputs
+outputs/reports/
+outputs/analytics/
+*.pdf
+*.tmp
+
+# Generated avatar images (created at runtime)
+__builtin_avatar_*.png
+
+# Temp files from doctor report generation
+neuro_motor_chart.png
+techtrap_qr.png
+
+# OS
+Thumbs.db
+.DS_Store
+desktop.ini
+
+# Logs
+*.log
+
+# Data files with personal info (keep templates but not runtime data)
+# Uncomment to also ignore runtime data:
+# data.json
+# selected_character.json
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/

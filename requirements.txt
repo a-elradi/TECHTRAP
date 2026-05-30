@@ -1,0 +1,26 @@
+# Core Computer Vision
+opencv-python>=4.8.0
+cvzone>=1.6.1
+mediapipe>=0.10.0
+
+# AI / Neural Network
+mindspore>=2.2.0
+numpy>=1.24.0
+
+# GUI & Image Processing
+Pillow>=10.0.0
+
+# Document Generation
+reportlab>=4.0.0
+qrcode[pil]>=7.4.0
+matplotlib>=3.7.0
+
+# Audio (optional)
+pygame>=2.5.0
+
+# Windows Input Simulation (Windows only - built-in ctypes used)
+# pyautogui>=0.9.54   # required by mouse_demo.py (standalone)
+# autopy>=4.0.0       # alternative mouse control (standalone)
+
+# Background Removal (utility script only)
+# rembg>=2.0.0        # required by src/utils/remove_bg.py

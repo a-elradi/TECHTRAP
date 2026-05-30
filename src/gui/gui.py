@@ -5,19 +5,17 @@ from PIL import Image, ImageTk, ImageDraw, ImageOps
 import random, webbrowser, json, os
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet
-import json
-import os
 from tkinter import ttk
-from doctor_report import generate_doctor_pdf
+from reports.doctor_report import generate_doctor_pdf
 
 
-# ========= الصوت اختياري وآمن =========
+# =========  Audio (optional) =========
 SOUND_OK = False
 try:
     import pygame
     try:
         pygame.mixer.init()
-        bg_sound_path = r"Sound/sound.wav"
+        bg_sound_path = os.path.join("assets", "sounds", "sound.wav")
         if os.path.exists(bg_sound_path):
             bg = pygame.mixer.Sound(bg_sound_path)
             bg.play(loops=-1)
@@ -27,13 +25,14 @@ try:
 except Exception as e:
     print("pygame not available:", e)
 
-# ========= ADDED: Login Credentials =========
+# =========  Login Credentials =========
 USERS = {
     "parent": {"user": "parent", "pass": "1234"},
     "doctor": {"user": "doctor", "pass": "1234"}
 }
 
-# ========= أدوات شكلية =========
+
+# =========  UI Utilities =========
 def style_button(btn, bg="#8A2BE2", fg="white", fsize=14, bold=True):
     btn.config(
         bg=bg, fg=fg, activebackground="#B266FF", activeforeground="white",
@@ -45,18 +44,16 @@ def style_button(btn, bg="#8A2BE2", fg="white", fsize=14, bold=True):
     btn.bind("<ButtonPress-1>", lambda e: btn.config(bg="#8A2BE2"))
     btn.bind("<ButtonRelease-1>", lambda e: btn.config(bg="#B266FF"))
 
+
 def header_bar(parent, title_text, on_back=None, on_dashboard=None):
-    """شريط علوي: زر رجوع يسار + عنوان بالمنتصف + زر يمين اختياري (Dashboard)"""
     bar = tk.Frame(parent, bg="#442a6e")
     bar.pack(fill="x", side="top")
 
-    # زر الرجوع (يسار)
     if on_back:
-        back_btn = tk.Button(bar, text="← Back", command=on_back)
+        back_btn = tk.Button(bar, text="<- Back", command=on_back)
         style_button(back_btn, bg="#6B3FB3", fsize=12)
         back_btn.pack(side="left", padx=10, pady=8)
 
-    # حاوية يمين (لأزرار إضافية مثل Dashboard)
     right_box = tk.Frame(bar, bg="#442a6e")
     right_box.pack(side="right", padx=10)
 
@@ -65,7 +62,6 @@ def header_bar(parent, title_text, on_back=None, on_dashboard=None):
         style_button(dash_btn, bg="#1E90FF", fsize=12)
         dash_btn.pack(side="left", padx=6, pady=8)
 
-    # العنوان (منتصف)
     title = tk.Label(bar, text=title_text, font=("Arial", 20, "bold"),
                      fg="#f6f5fd", bg="#442a6e")
     title.place(relx=0.5, rely=0.5, anchor="center")
@@ -74,29 +70,23 @@ def header_bar(parent, title_text, on_back=None, on_dashboard=None):
 
 
 def safe_load_image(path, size):
-    """يحمل صورة ويعيد Placeholder آمن إذا لم توجد"""
     w, h = size
     try:
-        print(f"🔍 محاولة تحميل الصورة: {path}")  # ← السطر الجديد
         if os.path.exists(path):
-            print("✅ الصورة موجودة.")  # ← السطر الجديد
             img = Image.open(path).convert("RGBA")
             img = ImageOps.contain(img, (w, h), Image.Resampling.LANCZOS)
             return ImageTk.PhotoImage(img)
-        else:
-            print("❌ الصورة غير موجودة.")
     except Exception as e:
-        print("❌ خطأ أثناء تحميل الصورة:", e)
+        print(f"Image load error ({path}):", e)
 
-    # Placeholder
     img = Image.new("RGBA", (w, h), (138, 43, 226, 255))
     d = ImageDraw.Draw(img)
-    d.rectangle((0, 0, w-1, h-1), outline=(255, 255, 255, 200), width=2)
-    txt = "No Image"
-    d.text((10, h//2-8), txt, fill=(255, 255, 255, 230))
+    d.rectangle((0, 0, w - 1, h - 1), outline=(255, 255, 255, 200), width=2)
+    d.text((10, h // 2 - 8), "No Image", fill=(255, 255, 255, 230))
     return ImageTk.PhotoImage(img)
 
-# ========= ADDED: Login Popup Function =========
+
+# =========  Login Popup =========
 def login_popup(role, on_success):
     win = tk.Toplevel()
     win.title(f"{role.capitalize()} Login")
@@ -122,7 +112,8 @@ def login_popup(role, on_success):
 
     tk.Button(win, text="Login", command=check).pack(pady=10)
 
-# ========= ADDED: Export PDF Function =========
+
+# =========  Export PDF =========
 def export_child_pdf(name, age, email):
     file = filedialog.asksaveasfilename(
         defaultextension=".pdf",
@@ -133,46 +124,40 @@ def export_child_pdf(name, age, email):
 
     styles = getSampleStyleSheet()
     doc = SimpleDocTemplate(file)
-    content = []
-
-    content.append(Paragraph("<b>Child Report</b>", styles["Title"]))
-    content.append(Spacer(1, 12))
-    content.append(Paragraph(f"Name: {name}", styles["Normal"]))
-    content.append(Paragraph(f"Age: {age}", styles["Normal"]))
-    content.append(Paragraph(f"Parent Email: {email}", styles["Normal"]))
-
+    content = [
+        Paragraph("<b>Child Report</b>", styles["Title"]),
+        Spacer(1, 12),
+        Paragraph(f"Name: {name}", styles["Normal"]),
+        Paragraph(f"Age: {age}", styles["Normal"]),
+        Paragraph(f"Parent Email: {email}", styles["Normal"]),
+    ]
     doc.build(content)
     messagebox.showinfo("PDF", "Report exported")
 
-# ========= واجهة التطبيق =========
+
+# =========  Main UI =========
 def build_ui(root, on_game1, on_game2, on_game3, on_game4):
-    root.title("Techtrap Platform")
+    root.title("TECHTRAP Platform")
     root.geometry("980x640")
     root.configure(bg="#40246c")
     root.resizable(True, True)
 
-    # إطارات الصفحات
     welcome_frame = tk.Frame(root, bg="#38216a")
     character_frame = tk.Frame(root, bg="#38216a")
     games_frame = tk.Frame(root, bg="#38216a")
 
-    # ======================================================================
-    # ===================== الصفحة الأولى (معدّلة فقط) =====================
-    # ======================================================================
-    header_bar(welcome_frame, "Welcome to Fun Games! 🎉")
+    # ===== Welcome Page =====
+    header_bar(welcome_frame, "Welcome to TECHTRAP!")
     welcome_frame.pack(fill="both", expand=True)
 
-    # أعلام التحكم بالأنيميشن
     anim_running = {"on": True}
     gif_running = {"on": True}
 
-    # تحميل GIF متحرك (مسار افتراضي: img_re/gg.gif)
     def load_gif_frames(path):
         frames = []
         try:
             if os.path.exists(path):
                 im = Image.open(path)
-                # استخراج كل الإطارات
                 try:
                     while True:
                         frm = im.copy()
@@ -184,10 +169,10 @@ def build_ui(root, on_game1, on_game2, on_game3, on_game4):
             print("GIF load error:", e)
         return frames
 
-    gif_path = "img_re/gg.gif"
+    gif_path = os.path.join("assets", "images", "gg.gif")
     gif_frames = load_gif_frames(gif_path)
     gif_label = tk.Label(welcome_frame, bg="#38216a")
-    gif_label.place(relx=0.5, rely=0.5, anchor="center")  # وسط الصفحة تقريبًا
+    gif_label.place(relx=0.5, rely=0.5, anchor="center")
 
     def animate_gif(i=0):
         try:
@@ -195,20 +180,18 @@ def build_ui(root, on_game1, on_game2, on_game3, on_game4):
                 return
             gif_label.config(image=gif_frames[i])
             ni = (i + 1) % len(gif_frames)
-            gif_label.after(50, animate_gif, ni)  # سرعة ~20FPS
+            gif_label.after(50, animate_gif, ni)
         except Exception as e:
             print("GIF animate error:", e)
 
-    # عنوان فوق الـ GIF دائمًا
-    title_label = tk.Label(welcome_frame, text="Let's Play & Learn! 🎈",
+    title_label = tk.Label(welcome_frame, text="Let's Play & Learn!",
                            font=("Arial", 26, "bold"), bg="#38216a", fg="#f6f5fd")
-    title_label.place(relx=0.5, rely=0.1, anchor="center")  # أعلى منتصف الصفحة
+    title_label.place(relx=0.5, rely=0.1, anchor="center")
 
     if gif_frames:
         animate_gif()
 
-    # أنيميشن الإيموجيز (نجوم/رموز)
-    emoji_chars = ["⭐", "✨", "🎮", "🎈", "🏓", "🧩", "🚀"]
+    emoji_chars = ["*", "~", "G", "o", "P", "+", "R"]
     emoji_labels = []
     EMOJI_COUNT = 26
     resize_job = {"id": None}
@@ -225,7 +208,7 @@ def build_ui(root, on_game1, on_game2, on_game3, on_game4):
                 emoji = tk.Label(container, text=random.choice(emoji_chars),
                                  font=("Arial", random.randint(16, 24)),
                                  bg="#40246c", fg="#f6f5fd")
-                emoji.place(x=random.randint(0, width-20), y = random.randint(70, height - 20))
+                emoji.place(x=random.randint(0, width - 20), y=random.randint(70, height - 20))
                 emoji_labels.append(emoji)
         except Exception as e:
             print("create_emojis error:", e)
@@ -243,7 +226,7 @@ def build_ui(root, on_game1, on_game2, on_game3, on_game4):
                 y += 1
                 if y > height:
                     y = 70
-                    x = random.randint(0, width-20)
+                    x = random.randint(0, width - 20)
                 lbl.place(x=x, y=y)
         except Exception as e:
             print("animate_emojis error:", e)
@@ -251,22 +234,18 @@ def build_ui(root, on_game1, on_game2, on_game3, on_game4):
             if container.winfo_exists():
                 container.after(45, lambda: animate_emojis(container))
 
-    # زر Start
-    btn_start = tk.Button(welcome_frame, text="Start 🚀", width=16, height=2)
+    btn_start = tk.Button(welcome_frame, text="Start", width=16, height=2)
     style_button(btn_start, bg="#8A2BE2")
     btn_start.place(relx=0.5, rely=0.85, anchor="center")
 
-    # ========= ADDED: Parent and Doctor Buttons =========
-    # Parent Button
     def open_parent():
         login_popup("parent", lambda: btn_start.invoke())
 
-    btn_parent = tk.Button(welcome_frame, text="Parent 👨‍👩‍👧", width=16, height=2, 
+    btn_parent = tk.Button(welcome_frame, text="Parent", width=16, height=2,
                            command=open_parent)
     style_button(btn_parent, bg="#32CD32")
     btn_parent.place(relx=0.50, rely=0.45, anchor="center")
 
-    # Doctor Button
     def open_doctor():
         def doctor_page():
             win = tk.Toplevel(root)
@@ -276,54 +255,43 @@ def build_ui(root, on_game1, on_game2, on_game3, on_game4):
 
             header_bar(win, "Doctor Dashboard")
 
-
-          
-           # =========================
-           # Doctor AI Report Section
-           # =========================
-
             tk.Label(
-             win,
-            text="Select Session",
-            font=("Arial", 14, "bold"),
-            fg="white",
-            bg="#38216a"
+                win,
+                text="Select Session",
+                font=("Arial", 14, "bold"),
+                fg="white",
+                bg="#38216a"
             ).pack(pady=(30, 10))
 
-          # تحميل الـ sessions من data.json
             sessions = load_sessions()
             session_ids = [s["session_id"] for s in sessions]
 
             session_var = tk.StringVar()
-
             session_dropdown = ttk.Combobox(
-            win,
-            textvariable=session_var,
-            values=session_ids,
-            state="readonly",
-            width=35
+                win,
+                textvariable=session_var,
+                values=session_ids,
+                state="readonly",
+                width=35
             )
             session_dropdown.pack(pady=10)
 
-          
             tk.Button(
-             win,
-            text="🧠 Generate AI Doctor Report",
-            font=("Arial", 13, "bold"),
-            bg="#40246c",
-            fg="white",
-            command=lambda: generate_report_from_gui(session_var.get())
+                win,
+                text="Generate AI Doctor Report",
+                font=("Arial", 13, "bold"),
+                bg="#40246c",
+                fg="white",
+                command=lambda: generate_report_from_gui(session_var.get())
             ).pack(pady=30)
-
 
         login_popup("doctor", doctor_page)
 
-    btn_doctor = tk.Button(welcome_frame, text="Doctor 🩺", width=16, height=2, 
+    btn_doctor = tk.Button(welcome_frame, text="Doctor", width=16, height=2,
                            command=open_doctor)
     style_button(btn_doctor, bg="#1E90FF")
     btn_doctor.place(relx=0.50, rely=0.65, anchor="center")
 
-    # تشغيل الأنيميشن
     welcome_frame.update_idletasks()
     create_emojis(welcome_frame)
     animate_emojis(welcome_frame)
@@ -337,9 +305,7 @@ def build_ui(root, on_game1, on_game2, on_game3, on_game4):
         resize_job["id"] = root.after(180, lambda: create_emojis(welcome_frame))
     root.bind("<Configure>", on_root_resize)
 
-    # =================== نهاية تعديل الصفحة الأولى فقط ====================
-
-    # ===== صفحة اختيار الشخصية =====
+    # ===== Character Selection Page =====
     def go_welcome():
         anim_running["on"] = True
         gif_running["on"] = True
@@ -350,7 +316,7 @@ def build_ui(root, on_game1, on_game2, on_game3, on_game4):
         if gif_frames:
             animate_gif()
 
-    header_bar(character_frame, "Create Your Hero ✨", on_back=go_welcome)
+    header_bar(character_frame, "Create Your Hero", on_back=go_welcome)
 
     top_row = tk.Frame(character_frame, bg="#533082")
     top_row.pack(pady=10)
@@ -372,13 +338,13 @@ def build_ui(root, on_game1, on_game2, on_game3, on_game4):
     saved_canvas = tk.Canvas(saved_card, width=slot_w, height=slot_h,
                              bg="#A77BFF", highlightthickness=0)
     saved_canvas.grid(row=1, column=0, columnspan=2)
-    saved_canvas.create_text(slot_w//2, slot_h//2, text="(No saved image)",
+    saved_canvas.create_text(slot_w // 2, slot_h // 2, text="(No saved image)",
                              fill="white", font=("Arial", 10, "bold"), tags="hint")
 
     def fit_image_to_canvas(pil_img, tw, th):
         img = ImageOps.contain(pil_img, (tw, th), Image.Resampling.LANCZOS)
-        pad_x = (tw - img.width)//2
-        pad_y = (th - img.height)//2
+        pad_x = (tw - img.width) // 2
+        pad_y = (th - img.height) // 2
         return img, pad_x, pad_y
 
     saved_img_ref = {"tk": None}
@@ -391,7 +357,7 @@ def build_ui(root, on_game1, on_game2, on_game3, on_game4):
             saved_img_ref["tk"] = tk_img
             saved_canvas.delete("all")
             saved_canvas.create_rectangle(0, 0, slot_w, slot_h, fill="#A77BFF", width=0)
-            saved_canvas.create_image(px + img.width//2, py + img.height//2, image=tk_img)
+            saved_canvas.create_image(px + img.width // 2, py + img.height // 2, image=tk_img)
         except Exception as e:
             messagebox.showerror("Load error", f"Failed to load image:\n{e}")
 
@@ -406,20 +372,19 @@ def build_ui(root, on_game1, on_game2, on_game3, on_game4):
             preview_canvas.configure(bg=selected_bg_color.get())
             if selected_character_path["path"]:
                 pil = Image.open(selected_character_path["path"]).convert("RGBA")
-                img = ImageOps.contain(pil, (preview_w-20, preview_h-20), Image.Resampling.LANCZOS)
+                img = ImageOps.contain(pil, (preview_w - 20, preview_h - 20), Image.Resampling.LANCZOS)
                 w, h = img.size
-                px = (preview_w - w)//2
-                py = (preview_h - h)//2
+                px = (preview_w - w) // 2
+                py = (preview_h - h) // 2
                 img_tk = ImageTk.PhotoImage(img)
                 current_img_tk["img"] = img_tk
-                preview_canvas.create_image(px + w//2, py + h//2, image=img_tk)
+                preview_canvas.create_image(px + w // 2, py + h // 2, image=img_tk)
             if selected_sticker.get():
-                preview_canvas.create_text(preview_w-18, 18, text=selected_sticker.get(),
+                preview_canvas.create_text(preview_w - 18, 18, text=selected_sticker.get(),
                                            font=("Arial", 24, "bold"), fill="white")
         except Exception as e:
             print("preview error:", e)
 
-    # نموذج مختصر
     form = tk.Frame(preview_card, bg="#6C3BAE"); form.grid(row=0, column=1, sticky="w")
     tk.Label(form, text="Name", font=("Arial", 12, "bold"), bg="#6C3BAE", fg="white").grid(row=0, column=0, sticky="w")
     entry_name = tk.Entry(form, font=("Arial", 12), width=22); entry_name.grid(row=1, column=0, pady=(0, 6))
@@ -434,7 +399,6 @@ def build_ui(root, on_game1, on_game2, on_game3, on_game4):
     tk.Label(form, text="Parent Email", font=("Arial", 12, "bold"), bg="#6C3BAE", fg="white").grid(row=4, column=0, sticky="w")
     entry_email = tk.Entry(form, font=("Arial", 12), width=22); entry_email.grid(row=5, column=0, pady=(0, 6))
 
-    # ألوان وملصقات
     controls = tk.Frame(preview_card, bg="#6C3BAE"); controls.grid(row=1, column=1, sticky="w", pady=(8, 0))
     tk.Label(controls, text="Background", font=("Arial", 12, "bold"), bg="#6C3BAE", fg="white").grid(row=0, column=0, sticky="w")
     color_row = tk.Frame(controls, bg="#6C3BAE"); color_row.grid(row=1, column=0, sticky="w", pady=(2, 8))
@@ -444,13 +408,12 @@ def build_ui(root, on_game1, on_game2, on_game3, on_game4):
         b.pack(side="left", padx=4)
     tk.Label(controls, text="Sticker", font=("Arial", 12, "bold"), bg="#6C3BAE", fg="white").grid(row=2, column=0, sticky="w")
     sticker_row = tk.Frame(controls, bg="#6C3BAE"); sticker_row.grid(row=3, column=0, sticky="w")
-    for s in ["", "⭐", "🕶️", "🎩", "🚀"]:
+    for s in ["", "*", "S", "H", "R"]:
         text = "None" if s == "" else s
         bb = tk.Button(sticker_row, text=text, width=5,
                        command=lambda x=s: [selected_sticker.set(x), redraw_preview()])
         style_button(bb, fsize=12); bb.pack(side="left", padx=4, pady=2)
 
-    # شبكة أفاتارات مرحة (بدون عنوان Pick an Avatar)
     avatar_box = tk.Frame(character_frame, bg="#533082"); avatar_box.pack(pady=(8, 0))
     grid_frame = tk.Frame(avatar_box, bg="#533082"); grid_frame.pack(pady=6)
 
@@ -474,10 +437,9 @@ def build_ui(root, on_game1, on_game2, on_game3, on_game4):
             redraw_preview()
         b = tk.Button(grid_frame, image=tk_im, command=choose, bd=0, highlightthickness=2, cursor="hand2")
         b.image = tk_im
-        b.grid(row=i//8, column=i%8, padx=6, pady=6)
+        b.grid(row=i // 8, column=i % 8, padx=6, pady=6)
         b.configure(highlightbackground="#533082")
 
-    # تحميل شخصية محفوظة
     def load_saved_from_json_or_file():
         candidate, jp = None, "selected_character.json"
         try:
@@ -549,23 +511,21 @@ def build_ui(root, on_game1, on_game2, on_game3, on_game4):
                 else: widget.configure(bg=base)
             step()
         pulse(preview_card)
-        messagebox.showinfo("Saved", f"Yay! {name}'s hero is ready 🎉")
+        messagebox.showinfo("Saved", f"Yay! {name}'s hero is ready!")
         btn_play.config(state="normal")
         open_games_page()
 
-    # === صف الأزرار السفلية في شاشة الكاركتر + زر فتح character.html ===
     actions = tk.Frame(character_frame, bg="#533082"); actions.pack(pady=8)
 
-    btn_save = tk.Button(actions, text="Save ✅", command=save_character)
+    btn_save = tk.Button(actions, text="Save", command=save_character)
     style_button(btn_save, bg="#32CD32"); btn_save.pack(side="left", padx=6)
 
-    btn_play = tk.Button(actions, text="Let's Play 🎮", state="disabled")
+    btn_play = tk.Button(actions, text="Let's Play", state="disabled")
     style_button(btn_play, bg="#8A2BE2"); btn_play.pack(side="left", padx=6)
 
-    btn_skip = tk.Button(actions, text="Skip ⏭️")
+    btn_skip = tk.Button(actions, text="Skip")
     style_button(btn_skip, bg="#FFA500"); btn_skip.pack(side="left", padx=6)
 
-    # زر فتح character.html
     def open_character_html():
         html_path = "character.html"
         try:
@@ -576,37 +536,35 @@ def build_ui(root, on_game1, on_game2, on_game3, on_game4):
         except Exception as e:
             messagebox.showerror("Error", str(e))
 
-    btn_open_html = tk.Button(actions, text="Desing your custom hero 🤩", command=open_character_html)
+    btn_open_html = tk.Button(actions, text="Design your custom hero", command=open_character_html)
     style_button(btn_open_html, bg="#1E90FF"); btn_open_html.pack(side="left", padx=6)
 
-    # ===== صفحة الألعاب (كتالوج) =====
+    # ===== Games Catalog Page =====
     def go_character():
         for w in root.pack_slaves():
             w.forget()
         character_frame.pack(fill="both", expand=True)
 
     catalog_pages = [
-          # الصفحة الأولى
-    [
-    {"name": "Tower Building", "img": "img_re/game1.png", "action": on_game1},
-    {"name": "Racing", "img": "img_re/game2.png", "action": on_game2},
-    {"name": "Dino", "img": "img_re/game3.png", "action": on_game3},
-    {"name": "Tennis", "img": "img_re/game4.png", "action": on_game4},
-    ]
-,
         [
-            {"name": "Watani Magazine", "img": "img_re/WataniMagazine.png",
+            {"name": "Tower Building", "img": os.path.join("assets", "images", "game1.png"), "action": on_game1},
+            {"name": "Racing",         "img": os.path.join("assets", "images", "game2.png"), "action": on_game2},
+            {"name": "Dino",           "img": os.path.join("assets", "images", "game3.png"), "action": on_game3},
+            {"name": "Tennis",         "img": os.path.join("assets", "images", "game4.png"), "action": on_game4},
+        ],
+        [
+            {"name": "Watani Magazine", "img": os.path.join("assets", "images", "WataniMagazine.png"),
              "action": lambda: open_magazine()},
-            {"name": "MOUSE ", "img": "img_re/MOUSE.png",
-             "action": lambda: messagebox.showinfo("Coming soon", "MOUSE  coming soon!")},
-            {"name": "ART ", "img": "img_re/ART.png", "action": start_game_art},
-            {"name": "BodyTrack", "img": "img_re/bodytrack.png",
-        
+            {"name": "MOUSE",           "img": os.path.join("assets", "images", "MOUSE.png"),
+             "action": lambda: messagebox.showinfo("Coming soon", "MOUSE coming soon!")},
+            {"name": "ART",             "img": os.path.join("assets", "images", "Art.png"),
+             "action": start_game_art},
+            {"name": "BodyTrack",       "img": os.path.join("assets", "images", "bodytrack.png"),
              "action": lambda: messagebox.showinfo("Coming soon", "BodyTrack coming soon!")},
         ],
     ]
     current_page = {"idx": 0}
-    thumbs = []  # نحفظ مراجع الصور حتى لا تُجمّع من الذاكرة
+    thumbs = []
 
     def open_magazine():
         pdf_path = "magazine.pdf"
@@ -614,28 +572,22 @@ def build_ui(root, on_game1, on_game2, on_game3, on_game4):
             if os.path.exists(pdf_path):
                 webbrowser.open_new(pdf_path)
             else:
-                messagebox.showinfo("Read Catalog", "Place your magazine file as 'magazine.pdf' next to the app.")
+                messagebox.showinfo("Read Catalog",
+                                    "Place your magazine file as 'magazine.pdf' next to the app.")
         except Exception as e:
             messagebox.showerror("Open error", str(e))
+
     def open_dashboard():
         open_smart_dashboard(root)
-        win = tk.Toplevel(root)
-        win.title("Dashboard")
-        win.geometry("600x400")
-        win.configure(bg="#38216a")
-        header_bar(win, "📊 Dashboard")
-        
-    
+
     def build_games_page():
         nonlocal thumbs
-        thumbs = []  # نعيد تهيئة المراجع كل مرة
+        thumbs = []
 
-        # نظّف الصفحة قبل إعادة البناء
         for w in games_frame.pack_slaves():
             w.forget()
 
-        header_bar(games_frame, "Games Catalog 🎮", on_back=go_character, on_dashboard=open_dashboard)
-        
+        header_bar(games_frame, "Games Catalog", on_back=go_character, on_dashboard=open_dashboard)
 
         container = tk.Frame(games_frame, bg="#40246c")
         container.pack(fill="both", expand=True, padx=24, pady=18)
@@ -651,7 +603,7 @@ def build_ui(root, on_game1, on_game2, on_game3, on_game4):
             card.grid(row=r, column=c, padx=14, pady=14, sticky="nsew")
 
             img_tk = safe_load_image(item["img"], (220, 160))
-            thumbs.append(img_tk)  # مهم: احتفظ بالمرجع
+            thumbs.append(img_tk)
             img_lbl = tk.Label(card, image=img_tk, bg="#4b2f77", cursor="hand2")
             img_lbl.image = img_tk
             img_lbl.pack()
@@ -673,13 +625,12 @@ def build_ui(root, on_game1, on_game2, on_game3, on_game4):
                 c = 0
                 r += 1
 
-        # شريط التنقل
         nav_bar = tk.Frame(container, bg="#40246c")
         nav_bar.pack(fill="x", pady=(10, 0))
 
         page_indicator = tk.Label(
             nav_bar,
-            text=f"Page {current_page['idx']+1} / {len(catalog_pages)}",
+            text=f"Page {current_page['idx'] + 1} / {len(catalog_pages)}",
             font=("Arial", 12, "bold"),
             fg="#f6f5fd", bg="#40246c"
         )
@@ -693,54 +644,15 @@ def build_ui(root, on_game1, on_game2, on_game3, on_game4):
             current_page["idx"] = (current_page["idx"] - 1) % len(catalog_pages)
             build_games_page()
 
-        prev_btn = tk.Button(nav_bar, text="← Prev", command=prev_page)
+        prev_btn = tk.Button(nav_bar, text="<- Prev", command=prev_page)
         style_button(prev_btn, bg="#6B3FB3", fsize=12)
         prev_btn.pack(side="right", padx=(0, 8))
 
-        next_btn = tk.Button(nav_bar, text="Next →", command=next_page)
+        next_btn = tk.Button(nav_bar, text="Next ->", command=next_page)
         style_button(next_btn, bg="#6B3FB3", fsize=12)
         next_btn.pack(side="right")
-    
-        def open_settings_window():
-            win = tk.Toplevel(root)
-            win.title("Settings")
-            win.geometry("600x400")
-            win.configure(bg="#38216a")
-
-        # هيدر شكله نفس باقي الصفحات (اختياري)
-            header_bar(win, "الإعدادات ⚙️")
-
-        # صفحة فاضية: لا عناصر إضافية
-        # (لو حبيت لاحقاً تضيف خيارات، أضفها هنا)
-
-    def build_dashboard_page():
-    # تنظيف محتوى صفحة الألعاب
-        for w in games_frame.pack_slaves():
-            w.forget()
-
-    # رأس الصفحة
-    header_bar(games_frame, "📊 Dashboard", on_back=build_games_page)
-
-    # جسم الصفحة
-    body = tk.Frame(games_frame, bg="#40246c")
-    body.pack(fill="both", expand=True, padx=24, pady=18)
-
-    # تحميل الصورة من img_re/Dashboard0.jpg
-    img_path = os.path.join("img_re", "Dashboard0.jpg")
-    print("المسار:", img_path, "موجود؟", os.path.exists(img_path))
-    if os.path.exists(img_path):
-        img = Image.open(img_path)
-        img = img.resize((300, 300))  # عدّل الحجم حسب الحاجة
-        photo = ImageTk.PhotoImage(img)
-
-        img_label = tk.Label(body, image=photo, bg="#40246c")
-        img_label.image = photo  # مهم حتى لا تختفي الصورة
-        img_label.pack(pady=50)
-    else:
-        tk.Label(body, text="❌ الصورة غير موجودة", fg="white", bg="#40246c").pack()
 
     def open_games_page():
-        # إيقاف أنيميشن الصفحة الأولى عند الانتقال
         anim_running["on"] = False
         gif_running["on"] = False
         for w in root.pack_slaves():
@@ -748,15 +660,13 @@ def build_ui(root, on_game1, on_game2, on_game3, on_game4):
         games_frame.pack(fill="both", expand=True)
         build_games_page()
 
-    # ربط الأزرار والتنقّل
     btn_play.config(command=lambda: open_games_page() if selected_character_path["path"]
-                else messagebox.showwarning("No character", "Please save a character first!"))
+                    else messagebox.showwarning("No character", "Please save a character first!"))
 
     btn_skip.config(command=open_games_page)
     btn_start.config(command=lambda: [welcome_frame.pack_forget(),
                                       character_frame.pack(fill="both", expand=True)])
 
-    # تحميل تلقائي لو وُجد اختيار سابق
     try:
         if os.path.exists("selected_character.json"):
             with open("selected_character.json", "r", encoding="utf-8") as f:
@@ -769,27 +679,21 @@ def build_ui(root, on_game1, on_game2, on_game3, on_game4):
 
     redraw_preview()
 
-# ========= أمثلة لدوال الألعاب =========
-def start_game1(): messagebox.showinfo("Tower Building", "Starting Tower Building...")
-def start_game2(): messagebox.showinfo("Game 2", "Starting Game 2...")
-def start_game3(): messagebox.showinfo("Game 3", "Starting Game 3...")
-def start_game4(): messagebox.showinfo("Game 4", "Starting Game 4...")
 
+# =========  ART Game =========
 def start_game_art():
-    import cv2, numpy as np, os
+    import cv2, numpy as np
     from cvzone.HandTrackingModule import HandDetector
 
-    # إعدادات الفرشاة والممحاة
     brushThickness = 25
     eraserThickness = 100
 
-    # --- تحميل صور الترويسة بالترتيب الذي تريده
-    header_dir = os.path.join("Resources", "Header")
+    header_dir = os.path.join("assets", "icons")
     order = [
-        ("RE.jpg",  (0,   0, 255), "RED"),    # أحمر
-        ("BL.jpg",  (255, 0,   0), "BLUE"),   # أزرق
-        ("GR1.jpg", (0, 255,   0), "GREEN"),  # أخضر
-        ("DE.jpg",  (0,   0,   0), "ERASER")  # ممحاة
+        ("RE.jpg",  (0,   0, 255), "RED"),
+        ("BL.jpg",  (255, 0,   0), "BLUE"),
+        ("GR1.jpg", (0, 255,   0), "GREEN"),
+        ("DE.jpg",  (0,   0,   0), "ERASER")
     ]
 
     overlays, colors, names = [], [], []
@@ -797,26 +701,23 @@ def start_game_art():
         path = os.path.join(header_dir, fname)
         img = cv2.imread(path)
         if img is None:
-            # ترويسة بديلة لو الصورة ناقصة
             hdr = np.full((125, 1280, 3), (40, 25, 70), np.uint8)
             cv2.putText(hdr, name, (20, 85), cv2.FONT_HERSHEY_SIMPLEX, 2, (230, 230, 255), 3)
             overlays.append(hdr)
-            print(f"⚠️ لم يتم العثور على {path} — تم إنشاء بديل")
         else:
             overlays.append(img)
         colors.append(col)
         names.append(name)
 
     header = overlays[0]
-    drawColor = (255, 0, 255)  # MAGENTA كبداية مرئية
+    drawColor = (255, 0, 255)
     current_tool = "MAGENTA"
 
-    # --- الكاميرا
     cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
     if not cap.isOpened():
         cap.release()
         cap = cv2.VideoCapture(0, cv2.CAP_MSMF)
-    cap.set(3, 1280); cap.set(4, 720)   
+    cap.set(3, 1280); cap.set(4, 720)
     if not cap.isOpened():
         print("[ART] Camera not available")
         return
@@ -830,23 +731,19 @@ def start_game_art():
         if not ok: break
         img = cv2.flip(img, 1)
 
-        # كشف اليد
         hands, img = detector.findHands(img, flipType=False)
         if hands:
             hand = hands[0]
             lmList = hand["lmList"]
             fingers = detector.fingersUp(hand)
 
-            # سبابة ووسطى
             x1, y1 = lmList[8][:2]
             x2, y2 = lmList[12][:2]
 
-            # حدود الهيدر + تقسيم العرض لأربع خانات
             hH, wH = header.shape[:2]
             fh, fw = img.shape[:2]
             bins = np.linspace(0, fw, len(overlays) + 1).astype(int)
 
-            # وضع الاختيار: سبابة + وسطى
             if fingers[1] and fingers[2]:
                 cv2.rectangle(img, (x1, y1 - 25), (x2, y2 + 25), drawColor, cv2.FILLED)
                 if y1 < hH:
@@ -856,9 +753,8 @@ def start_game_art():
                             drawColor = colors[i]
                             current_tool = names[i]
                             break
-                xp = yp = 0  # ابدأ خط جديد
+                xp = yp = 0
 
-            # وضع الرسم: سبابة فقط
             elif fingers[1] and not fingers[2]:
                 cv2.circle(img, (x1, y1), 15, drawColor, cv2.FILLED)
                 if xp == 0 and yp == 0:
@@ -870,14 +766,12 @@ def start_game_art():
             else:
                 xp = yp = 0
 
-        # دمج اللوحة مع الصورة
         imgGray = cv2.cvtColor(imgCanvas, cv2.COLOR_BGR2GRAY)
         _, imgInv = cv2.threshold(imgGray, 50, 255, cv2.THRESH_BINARY_INV)
         imgInv = cv2.cvtColor(imgInv, cv2.COLOR_GRAY2BGR)
         img = cv2.bitwise_and(img, imgInv)
         img = cv2.bitwise_or(img, imgCanvas)
 
-        # وضع الهيدر
         hH, wH = header.shape[:2]
         if wH != img.shape[1]:
             header_resized = cv2.resize(header, (img.shape[1], hH))
@@ -885,32 +779,27 @@ def start_game_art():
         else:
             img[0:hH, 0:wH] = header
 
-        # اسم الأداة الحالية + زر مسح سريع
         cv2.putText(img, f"Tool: {current_tool}  (press 'c' to clear, 'q' to quit)",
                     (20, hH + 40), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (230, 230, 230), 2)
 
-        cv2.imshow("ART ", img)
+        cv2.imshow("ART", img)
         key = cv2.waitKey(1) & 0xFF
-        if key in [ord('q'), 27]:  # ESC أو q
+        if key in [ord("q"), 27]:
             break
-        if key == ord('c'):
-            imgCanvas[:] = 0  # مسح اللوحة
+        if key == ord("c"):
+            imgCanvas[:] = 0
 
     cap.release()
     cv2.destroyAllWindows()
 
-if __name__ == "__main__":
-    root = tk.Tk()
-    build_ui(root, start_game1, start_game2, start_game3, start_game4 )
-    root.mainloop() 
-    # =================================================
-# ========== ADDED: GLOBAL GAME STATS ==============
-# =================================================
+
+# =========  Game Stats =========
 GAME_STATS = {
     "total_games": 0,
     "last_game": "None",
     "play_log": []
 }
+
 
 def log_game_play(game_name):
     GAME_STATS["total_games"] += 1
@@ -918,35 +807,31 @@ def log_game_play(game_name):
     GAME_STATS["play_log"].append(game_name)
 
 
-# =================================================
-# ========== ADDED: STOP GAME HANDLER ==============
-# =================================================
+# =========  Stop Game =========
 def stop_current_game():
     try:
         import main
         main.stop_game()
-        messagebox.showinfo("STOP", "🛑 Game Stopped Successfully")
+        messagebox.showinfo("STOP", "Game Stopped Successfully")
     except Exception as e:
         messagebox.showerror("Error", f"Failed to stop game:\n{e}")
 
 
-# =================================================
-# ========== ADDED: DASHBOARD WINDOW ===============
-# =================================================
+# =========  Smart Dashboard =========
 def open_smart_dashboard(root):
     win = tk.Toplevel(root)
-    win.title("📊 Child Dashboard")
+    win.title("Child Dashboard")
     win.geometry("600x420")
     win.configure(bg="#38216a")
 
-    header_bar(win, "📊 Smart Dashboard")
+    header_bar(win, "Smart Dashboard")
 
     body = tk.Frame(win, bg="#38216a")
     body.pack(fill="both", expand=True, padx=20, pady=20)
 
     tk.Label(
         body,
-        text=f"🎮 Total Games Played: {GAME_STATS['total_games']}",
+        text=f"Total Games Played: {GAME_STATS['total_games']}",
         font=("Arial", 16, "bold"),
         fg="white",
         bg="#38216a"
@@ -954,7 +839,7 @@ def open_smart_dashboard(root):
 
     tk.Label(
         body,
-        text=f"🕹️ Last Game: {GAME_STATS['last_game']}",
+        text=f"Last Game: {GAME_STATS['last_game']}",
         font=("Arial", 14),
         fg="white",
         bg="#38216a"
@@ -965,7 +850,7 @@ def open_smart_dashboard(root):
 
     tk.Label(
         log_box,
-        text="📜 Play History",
+        text="Play History",
         font=("Arial", 14, "bold"),
         fg="white",
         bg="#4b2f77"
@@ -973,33 +858,28 @@ def open_smart_dashboard(root):
 
     if GAME_STATS["play_log"]:
         for g in GAME_STATS["play_log"][-5:]:
-            tk.Label(
-                log_box,
-                text=f"• {g}",
-                fg="white",
-                bg="#4b2f77",
-                font=("Arial", 12)
-            ).pack(anchor="w", padx=20)
+            tk.Label(log_box, text=f"- {g}", fg="white", bg="#4b2f77",
+                     font=("Arial", 12)).pack(anchor="w", padx=20)
     else:
-        tk.Label(
-            log_box,
-            text="No games played yet",
-            fg="white",
-            bg="#4b2f77"
-        ).pack(pady=10)
+        tk.Label(log_box, text="No games played yet", fg="white",
+                 bg="#4b2f77").pack(pady=10)
 
-    stop_btn = tk.Button(
-        body,
-        text="🛑 STOP GAME",
-        command=stop_current_game
-    )
+    stop_btn = tk.Button(body, text="STOP GAME", command=stop_current_game)
     style_button(stop_btn, bg="red", fsize=14)
     stop_btn.pack(pady=15)
-    # =========================
-# Doctor Report Integration
-# =========================
 
+    img_path = os.path.join("assets", "images", "Dashboard0.jpg")
+    if os.path.exists(img_path):
+        img = Image.open(img_path).resize((200, 200))
+        photo = ImageTk.PhotoImage(img)
+        img_label = tk.Label(body, image=photo, bg="#38216a")
+        img_label.image = photo
+        img_label.pack(pady=10)
+
+
+# =========  Doctor Report Integration =========
 DATA_FILE = "data.json"
+
 
 def load_sessions():
     if not os.path.exists(DATA_FILE):
@@ -1015,7 +895,6 @@ def generate_report_from_gui(selected_session_id):
         return
 
     sessions = load_sessions()
-
     session = next(
         (s for s in sessions if s["session_id"] == selected_session_id),
         None
@@ -1036,3 +915,15 @@ def generate_report_from_gui(selected_session_id):
     )
 
     os.startfile(pdf_path)
+
+
+# =========  Standalone entry =========
+if __name__ == "__main__":
+    import sys
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
+
+    root = tk.Tk()
+
+    def _noop(*a): pass
+    build_ui(root, _noop, _noop, _noop, _noop)
+    root.mainloop()
