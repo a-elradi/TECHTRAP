@@ -238,7 +238,6 @@ Gameplay Session
 
 ![Huawei Certificate](docs/certificates/huawei_certificate.jpg)
 
-![Participation Certificate](docs/certificates/participation_certificate.jpg)
 
 ---
 
@@ -388,9 +387,9 @@ TECHTRAP/
 
 | Name | Role |
 |------|------|
-| Abdalla Elsiddig | Lead Developer, AI Integration |
-| *(Team Member 2)* | UI/UX Design |
-| *(Team Member 3)* | Computer Vision Pipeline |
+| Abdalla Elsiddig | Lead Developer, AI Integration, Computer Vision Pipeline |
+| *(Wala Saleh)* | UI/UX Design |
+| *(nathalie AHMED)* | Project Presenter & Team Representative |
 
 ---
 
