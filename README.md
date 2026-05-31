@@ -248,7 +248,7 @@ Gameplay Session
 | | |
 |--|--|
 | ![Team Presentation](docs/competition_day/team_presentation.jpg) | **Team Presentation** — Live demonstration of TECHTRAP to the competition panel. |
-| ![Project Demo](docs/competition_day/project_demo.mp4) | **Project Demonstration** — End-to-end showcase of the AI pipeline in action. |
+| ![Project Demo](docs/competition_day/project_demo.jpg) | **Project Demonstration** — End-to-end showcase of the AI pipeline in action. |
 | ![Judging Session](docs/competition_day/judging_session.jpg) | **Judging Session** — Q&A with industry experts and Huawei technical evaluators. |
 | ![Team Photo](docs/competition_day/team_photo.jpg) | **Team Photo** — The TECHTRAP team after the competition. |
 
