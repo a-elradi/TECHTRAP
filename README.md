@@ -237,7 +237,7 @@ Gameplay Session
 > Add certificate images to `docs/certificates/` and they will appear here automatically.
 
 ![Huawei Certificate](docs/certificates/huawei_certificate.jpg)
-
+![Teams photo](docs/certificates/teams_pic.jpg)
 
 ---
 
