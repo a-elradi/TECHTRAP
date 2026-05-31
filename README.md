@@ -199,7 +199,6 @@ Gameplay Session
 | Games Catalog | ![Games](docs/screenshots/games_catalog.png) |
 | ART Game | ![ART](docs/screenshots/art_game.png) |
 | Doctor Report | ![Report](docs/screenshots/doctor_report.png) |
-| Smart Dashboard | ![Dashboard](docs/screenshots/dashboard.png) |
 
 ---
 
