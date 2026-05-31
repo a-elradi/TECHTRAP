@@ -19,7 +19,7 @@
 
 **TECHTRAP** is an AI-driven therapeutic gaming platform designed to assess neuro-motor development in children aged 4–12 through real-time hand gesture and body motion analysis. Using a standard webcam and Huawei's **MindSpore** neural network framework, the platform transforms gameplay into a clinically meaningful motor assessment — producing instant AI-powered doctor reports without specialized medical equipment.
 
-Built as part of the **Huawei ICT Innovation Competition 2024**, TECHTRAP bridges the gap between entertainment and healthcare by making neuro-motor screening accessible, engaging, and affordable for schools, clinics, and families.
+Built as part of the **Huawei ICT Innovation Competition 2025**, TECHTRAP bridges the gap between entertainment and healthcare by making neuro-motor screening accessible, engaging, and affordable for schools, clinics, and families.
 
 ---
 
@@ -190,14 +190,13 @@ Gameplay Session
 
 ## Application Screenshots
 
-> **Note:** Add screenshots to `docs/screenshots/` to display them here.
+
 
 | Screen | Preview |
 |--------|---------|
 | Welcome Page | ![Welcome](docs/screenshots/welcome.png) |
 | Character Creator | ![Character](docs/screenshots/character.png) |
 | Games Catalog | ![Games](docs/screenshots/games_catalog.png) |
-| ART Game | ![ART](docs/screenshots/art_game.png) |
 | Doctor Report | ![Report](docs/screenshots/doctor_report.png) |
 
 ---
@@ -225,15 +224,12 @@ Gameplay Session
 - **Doctor Report Generation:** End-to-end flow from gameplay to clinical PDF in under 60 seconds
 - **Accessibility Argument:** The platform requires only a standard $20 webcam — making it viable for schools and clinics in developing regions
 
-### Technical Highlights for Judges
 
-> TECHTRAP demonstrates that healthcare AI does not require hospital-grade hardware. By combining real-time computer vision with on-device MindSpore inference, we deliver a clinically meaningful motor screening experience in the form of a game — lowering barriers, improving engagement, and enabling early detection at scale.
 
 ---
 
 ## Certificates & Achievements
 
-> Add certificate images to `docs/certificates/` and they will appear here automatically.
 
 ![Huawei Certificate](docs/certificates/huawei_certificate.jpg)
 ![Teams photo](docs/certificates/teams_pic.jpg)
@@ -242,7 +238,7 @@ Gameplay Session
 
 ## Competition Day Gallery
 
-> Add photos to `docs/competition_day/` and they will display here.
+
 
 | | |
 |--|--|
@@ -382,7 +378,7 @@ TECHTRAP/
 
 ## Team Members
 
-> Update with your team information.
+
 
 | Name | Role |
 |------|------|
